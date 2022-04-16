@@ -1,4 +1,4 @@
-# Deploy EVE-NG PRO to a Digital Ocean droplet
+# Deploy EVE-NG PRO to a Ubuntu 18.04 LTS host
 
 Playbooks to install and configure EVE-NG PRO on Ubuntu 18.04 LTS host. I'm currently using this to deploy to Digital Ocean, but the playbooks are generally cloud-agnostic.
 
