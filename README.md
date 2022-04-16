@@ -1,6 +1,6 @@
 # Deploy EVE-NG PRO to a Digital Ocean droplet
 
-Playbooks to install and configure EVE-NG PRO on Ubuntu 18.04 LTS host. I'm currently using this to deploy to Digital Ocean, but the playbooks are, in general, cloud-agnostic.
+Playbooks to install and configure EVE-NG PRO on Ubuntu 18.04 LTS host. I'm currently using this to deploy to Digital Ocean, but the playbooks are generally cloud-agnostic.
 
 The playbooks accomplish the following:
 
@@ -29,7 +29,7 @@ I install the collection from Ansible galaxy using `ansible-galaxy`:
 ansible-galaxy collection install -r ansible/collections/requirements.yaml
 ```
 
-**:notebook: Note:** My droplets are tagged with `eve-ng`, which is the same group targeted by the playbooks. The inventory plugin automatically creates a group with droplet tags, so as no other configuration is necessary.
+**:notebook: Note:** My droplets are tagged with `eve-ng`, the same group targeted by the playbooks. The inventory plugin automatically creates a group with droplet tags, so no additional configuration is necessary.
 
 ## Required Variables and configurations
 
@@ -38,14 +38,14 @@ ansible-galaxy collection install -r ansible/collections/requirements.yaml
 for the playbooks, the two required variables are:
 
 * `certbot_email` - to register an account and use the `non-interactive` mode to create SSL certificates
-* `certbot_domain` - the site name to create a certificate for
+* `certbot_domain` - the site name to generate a certificate for
 * `eve_ng_password` - EVE-NG root password
 
 The `pb-eveng.yaml` playbook currently sets these variables from environment variables (`CERTBOT_EMAIL`, `CERTBOT_DOMAIN`, and `EVE_NG_SSH_PASSWORD`).
 
 The digital ocean inventory plugin [configuration](./ansible/inventory/digitalocean.yaml) also requires that `api_token` is set with your API TOKEN. I'm also setting this value using an environment variable.
 
-To avoid committing potentially sensitive data in this repo, I opted to keep required variables in a `.env` file.
+To avoid committing potentially sensitive data in this repo, I opted to keep the required variables in a `.env` file.
 
 Here's a sample for my `.env` file
 
@@ -58,7 +58,7 @@ export EVE_NG_SSH_PASSWORD="sup3rs3cr3t!"
 
 ### Configuration for SSH login with a public key
 
-I set the path to my private key file for a password-less login.
+I set the path to my private key file for a password-less login in the [`ansible.cfg`](./ansible/ansible.cfg) file.
 
 ```ini
 [defaults]
