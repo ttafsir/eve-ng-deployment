@@ -1,0 +1,4 @@
+#!/usr/bin/ansible-playbook
+
+- import_playbook: playbooks/pb-docker.yaml
+- import_playbook: playbooks/pb-install_eveng.yaml

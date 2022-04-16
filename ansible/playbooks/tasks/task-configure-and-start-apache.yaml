@@ -1,0 +1,21 @@
+---
+- name: set certificate file and certificate key file values
+  become: true
+  become_user: root
+  replace:
+    path: /etc/apache2/sites-enabled/eveng-ssl.conf
+    regexp: "{{ item.regexp }}"
+    replace: '\1 {{ item.replacement }}'
+    backup: true
+  loop: "{{ certs }}"
+  vars:
+    certs:
+      - regexp: '(SSLCertificateFile\s+)(.*)$'
+        replacement: /etc/letsencrypt/live/{{ certbot_domain }}/fullchain.pem
+      - regexp: '(SSLCertificateKeyFile\s+)(.*)$'
+        replacement: /etc/letsencrypt/live/{{ certbot_domain }}/privkey.pem
+
+- name: restart apache2
+  ansible.builtin.systemd:
+    name: apache2
+    state: restarted

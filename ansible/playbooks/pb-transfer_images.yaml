@@ -1,0 +1,33 @@
+---
+- name: archive images to transfer
+  hosts: eve-ng
+  gather_facts: false
+
+  vars:
+    create_archive: false
+    archive_dest: ../.local/images.tar.gz
+
+  tasks:
+    - name: check if archive exists
+      stat:
+        path: "{{ archive_dest }}"
+      register: stat_archive
+
+    - name: compress image directory
+      community.general.archive:
+        path: ../../../eve-ng_images
+        dest: "{{ archive_dest }}"
+        format: gz
+      delegate_to: localhost
+      run_once: true
+      when: (create_archive|bool) or not (stat_archive.stat.exists)
+
+    - name: transfer images
+      ansible.builtin.copy:
+        src: ../.local/images.tar.gz
+        dest: /opt/unetlab/addons/images.tar.gz
+
+    - name: Extract images
+      ansible.builtin.unarchive:
+        src: /opt/unetlab/addons/images.tar.gz
+        dest: /opt/unetlab/addons/images

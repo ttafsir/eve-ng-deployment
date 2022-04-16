@@ -1,0 +1,96 @@
+---
+- hosts: eve-ng
+  any_errors_fatal: true
+  become: true
+  become_user: root
+
+  vars:
+    certbot_domain: "{{ lookup('env', 'CERTBOT_DOMAIN') }}"
+    certbot_email: "{{ lookup('env', 'CERTBOT_EMAIL') }}"
+
+  handlers:
+    - name: update-grub
+      command: update-grub
+      failed_when: ('error' in grub_register_update.stderr)
+      register: grub_register_update
+    - name: reboot
+      include_tasks: "{{ playbook_dir }}/tasks/handler-reboot.yaml"
+
+  tasks:
+
+    - name: Update root password
+      user:
+        name: root
+        password: "{{ even_ng_password | default(lookup('env','EVE_NG_SSH_PASSWORD')) | password_hash('sha512') }}"
+
+    - name: Remove Cloud init
+      ansible.builtin.apt:
+        name: cloud-init
+        state: absent
+
+    # https://wiki.debian.org/NetworkInterfaceNames
+    - name: Disable predictable network interface names so we can use eth0, eth1, etc.
+      become: true
+      become_user: root
+      replace:
+        path: /etc/default/grub
+        regexp: '(^GRUB_CMDLINE_LINUX_DEFAULT=)(.*)$'
+        replace: '\1"{{ replacement_value }}"'
+        backup: true
+      notify: ['update-grub']
+      vars:
+        replacement_value: net.ifnames=0 noquiet
+
+    - name: Add EVE-NG GPG key
+      apt_key:
+        url: http://www.eve-ng.net/repo-bionic/eczema@ecze.com.gpg.key
+        state: present
+      become: true
+
+    - name: Set repository for EVE-NG pro install
+      set_fact:
+        eve_ng_repo: "deb [arch=amd64]  http://www.eve-ng.net/repo-bionic {{ ansible_distribution_release }} main"
+
+    - name: Set up repo for EVE-NG
+      apt_repository:
+        repo: "{{ eve_ng_repo }}"
+        state: present
+      become: true
+
+    # hack-around since non-interactive install isn't working with apt
+    - name: Install EVE-NG PRO
+      shell: |
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get -y install eve-ng-pro
+      become: true
+
+    - name: Install EVE-NG Docker Images and utilities
+      apt:
+        pkg: eve-ng-dockers
+        state: latest
+        update_cache: true
+      become: true
+
+    - name: place `/opt/ovf/.configured` file to end EVE-NG configuration
+      ansible.builtin.file:
+        path: /opt/ovf/.configured
+        state: touch
+        modification_time: preserve
+        access_time: preserve
+      notify: ['reboot']
+
+    - name: Stop apache2, if running
+      ansible.builtin.systemd:
+        name: apache2
+        state: stopped
+
+    - name: install configure and use certbot, if needed
+      include_tasks: "{{ playbook_dir }}/tasks/task-certbot.yaml"
+      tags: ['certbot']
+
+    - name: configure and restart apache2
+      include_tasks: "{{ playbook_dir }}/tasks/task-configure-and-start-apache.yaml"
+      tags: ['certbot','apache2']
+      when:
+        - certbot_create_task_result is defined
+        - certbot_create_task_result is succeeded

@@ -1,0 +1,65 @@
+---
+
+- name: INSTALL DOCKER ENGINE
+  hosts: eve-ng
+  gather_facts: true
+
+  vars:
+    packages_to_remove:
+    - docker
+    - docker-engine
+    - docker.io
+    - containerd
+    - runc
+
+    packages_pre_install:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg-agent
+    - software-properties-common
+
+    packages_to_install:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+
+
+  tasks:
+
+    - name: Uninstall old versions
+      apt:
+        pkg: "{{ packages_to_remove }}"
+        state: absent
+      become: true
+
+    - name: Install packages to set up the repository
+      apt:
+        pkg: "{{ packages_pre_install }}"
+        state: latest
+        update_cache: true
+      become: true
+
+    - name: Add Docker's official key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+        id: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+      become: true
+
+    - name: Set stable repository
+      set_fact:
+        stable_repository: "deb [arch=amd64] https://download.docker.com/linux/ubuntu  {{ ansible_distribution_release }} stable"
+
+    - name: Set up the stable repository
+      apt_repository:
+        repo: "{{ stable_repository }}"
+        state: present
+      become: true
+
+    - name: Install Docker
+      apt:
+        pkg: "{{ packages_to_install }}"
+        state: latest
+        update_cache: true
+      become: true

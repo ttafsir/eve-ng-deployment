@@ -1,0 +1,5 @@
+---
+- name: _reboot
+  ansible.builtin.reboot:
+  register: system_reboot
+  ignore_errors: true

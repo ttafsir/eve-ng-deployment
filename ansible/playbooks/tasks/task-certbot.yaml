@@ -1,0 +1,31 @@
+---
+- name: update cache and install certbot
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 300
+    state: present
+    name: certbot
+
+- name: check if cert exists
+  stat:
+    path: /etc/letsencrypt/live/{{ certbot_domain }}/fullchain.pem
+  register: certbot_exists
+
+- name: use letsencrypt to get an HTTPS certificate, if cert doesn't exist
+  block:
+    - name: register and agree to certbot TOS
+      ansible.builtin.shell: |
+        certbot register --agree-tos --email {{ certbot_email }} --non-interactive
+      register: certbot_register_result
+      ignore_errors: true
+
+    - name: fail if certbot register failed for any reason other than an existing account
+      ansible.builtin.fail:
+        msg: "{{ certbot_register_result.stdout_lines | join('\n') }}"
+      when: certbot_register_result is failed and "duplicate account" not in certbot_register_result.stderr
+
+    - name: Create Let's encrypt certificate
+      shell: |
+        certbot certonly --standalone --preferred-challenges http -d {{ certbot_domain }} --non-interactive
+      register: certbot_create_task_result
+  when: not certbot_exists.stat.exists
